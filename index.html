@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>German Daily</title>
+<style>
+:root {
+  --bg: #F7F3EE; --sidebar: #EEEBE6; --card: #FFFFFF;
+  --text: #2C2A27; --text-secondary: #6B6762; --text-tertiary: #9C9791;
+  --accent: #C96442; --accent-hover: #B85535;
+  --accent-light: rgba(201,100,66,0.08);
+  --border: rgba(44,42,39,0.08);
+  --radius: 16px; --radius-lg: 18px;
+  --font-title: 'Noto Serif SC', 'Lora', serif;
+  --font-body: 'Noto Serif SC', 'Times New Roman', serif;
+  --transition: 0.25s ease;
+}
+[data-theme="dark"] {
+  --bg: #1F1E1D; --sidebar: #181716; --card: #2A2826;
+  --text: #F0EBE4; --text-secondary: #D9D3CD; --text-tertiary: #B5B0A9;
+  --accent: #C96442; --accent-hover: #D97A58;
+  --accent-light: rgba(201,100,66,0.12);
+  --border: rgba(240,235,228,0.06);
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);transition:background var(--transition),color var(--transition)}
+.app{display:flex;height:100vh;width:100%}
+.sidebar{width:220px;flex-shrink:0;background:var(--sidebar);padding:32px 18px;display:flex;flex-direction:column;border-right:1px solid var(--border);transition:background var(--transition)}
+.sidebar-logo{font-family:var(--font-title);font-size:18px;font-weight:700;color:var(--accent);letter-spacing:1px;padding:0 10px;margin-bottom:32px}
+.sidebar-nav{flex:1;display:flex;flex-direction:column;gap:6px}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:12px;font-size:14px;font-weight:400;color:var(--text-secondary);cursor:pointer;transition:all var(--transition);border:none;background:none;text-align:left;width:100%;letter-spacing:0.5px}
+.sidebar-item:hover{color:var(--text);background:var(--accent-light)}
+.sidebar-item.active{color:var(--accent);background:var(--accent-light);border:1px solid rgba(201,100,66,0.15);font-weight:400}
+.sidebar-item .icon{line-height:1;display:flex;align-items:center}
+.sidebar-item .icon svg{display:block}
+.sidebar-bottom{margin-top:auto;padding-top:20px;border-top:1px solid var(--border)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);transition:background var(--transition)}
+.main-header{display:none;padding:16px 20px;border-bottom:1px solid var(--border);align-items:center;justify-content:space-between}
+.main-header .logo{font-family:var(--font-title);font-size:15px;color:var(--accent);font-weight:700}
+.main-content{flex:1;overflow-y:auto;padding:28px 32px 24px;-webkit-overflow-scrolling:touch}
+.main-content::-webkit-scrollbar{width:4px}
+.main-content::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.page{display:none;max-width:600px;margin:0 auto;width:100%;animation:fadeIn 0.35s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+/* Search */
+.search-box{position:relative;margin-bottom:18px}
+.search-box input{width:100%;padding:14px 18px;border-radius:14px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;outline:none;font-family:var(--font-body);transition:border var(--transition),background var(--transition)}
+.search-box input:focus{border-color:var(--accent)}
+.search-box input::placeholder{color:var(--text-tertiary)}
+.search-results{display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:14px;margin-top:4px;max-height:300px;overflow-y:auto;z-index:10;padding:6px}
+.search-results.show{display:block}
+.search-result-item{padding:10px 14px;cursor:pointer;border-radius:8px;display:flex;justify-content:space-between;align-items:center;font-size:14px;transition:background var(--transition)}
+.search-result-item:hover{background:var(--accent-light)}
+.search-result-item .s-word{font-weight:500}
+.search-result-item .s-meaning{color:var(--text-tertiary);font-size:13px}
+/* Daily Card */
+.daily-card{background:var(--card);border-radius:var(--radius-lg);padding:36px 32px;margin-bottom:20px;border:1px solid var(--border);transition:background var(--transition)}
+.daily-label{font-size:11px;font-weight:500;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px}
+.daily-progress{font-size:11px;color:var(--text-tertiary);margin-bottom:12px;letter-spacing:0.3px}
+.daily-word{font-family:var(--font-title);font-size:38px;font-weight:500;letter-spacing:1.5px;margin-bottom:6px;line-height:1.3}
+.daily-meaning{font-size:16px;color:var(--text-secondary);margin-bottom:18px;font-weight:300}
+.daily-example{font-size:13px;color:var(--text-tertiary);font-style:italic;line-height:1.5;padding-top:14px;border-top:1px solid var(--border)}
+.daily-example-cn{font-size:12px;color:var(--text-tertiary);margin-top:4px}
+.daily-nav{display:flex;justify-content:space-between;margin-top:18px}
+.daily-nav button{background:var(--accent-light);border:1px solid rgba(201,100,66,0.15);color:var(--accent);padding:9px 22px;border-radius:20px;font-size:13px;cursor:pointer;transition:all var(--transition);font-family:var(--font-body)}
+.daily-nav button:hover{background:var(--accent);color:#fff}
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 10px;text-align:center;transition:background var(--transition)}
+.stat-num{font-family:'Inter',monospace;font-size:20px;font-weight:600;color:var(--accent)}
+.stat-label{font-size:10px;color:var(--text-tertiary);margin-top:3px;letter-spacing:0.3px}
+/* Quick Actions */
+.quick-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.quick-btn{border-radius:16px;padding:20px 16px;text-align:center;cursor:pointer;border:1px solid var(--border);background:var(--card);font-size:13px;font-weight:500;color:var(--text);transition:all var(--transition);font-family:var(--font-body);letter-spacing:0.5px}
+.quick-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.quick-btn:active{transform:scale(0.97)}
+/* Speech */
+.speak-btn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;border:1px solid var(--border);background:var(--accent-light);color:var(--accent);cursor:pointer;transition:all var(--transition);padding:0;margin-left:8px;vertical-align:middle;flex-shrink:0}
+.speak-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.speak-btn:active{transform:scale(0.92)}
+.speak-btn svg{width:16px;height:16px;display:block}
+.speak-btn.playing{animation:pulse 0.6s ease}
+@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.15)}100%{transform:scale(1)}}
+.daily-word .speak-btn{width:42px;height:42px;margin-left:12px;vertical-align:middle}
+.daily-word .speak-btn svg{width:20px;height:20px}
+/* Flashcard */
+.flash-container{display:flex;flex-direction:column;align-items:center;padding-top:8px}
+.fc-header{display:flex;justify-content:space-between;width:100%;margin-bottom:14px}
+.fc-header .fc-counter{font-size:13px;color:var(--text-tertiary);font-family:var(--font-title)}
+.fc-header .fc-type{font-size:11px;color:var(--accent);background:var(--accent-light);padding:3px 12px;border-radius:12px;letter-spacing:0.5px}
+.flashcard{width:100%;aspect-ratio:4/3;perspective:1000px;cursor:pointer;margin-bottom:16px}
+.fc-inner{position:relative;width:100%;height:100%;transition:transform 0.5s ease;transform-style:preserve-3d}
+.flashcard.flipped .fc-inner{transform:rotateY(180deg)}
+.fc-front,.fc-back{position:absolute;width:100%;height:100%;backface-visibility:hidden;border-radius:var(--radius-lg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;border:1px solid var(--border)}
+.fc-front{background:var(--card)}
+.fc-front .fc-wd{font-family:var(--font-title);font-size:34px;font-weight:500;color:var(--text);margin:8px 0;letter-spacing:0.5px}
+.fc-hint{font-size:12px;color:var(--text-tertiary);font-weight:300;margin-top:12px}
+.fc-back{background:var(--card);transform:rotateY(180deg)}
+.fc-back .fc-mn{font-size:24px;font-weight:500;color:var(--text);margin-bottom:10px}
+.fc-back .fc-ex{font-size:13px;color:var(--text-secondary);line-height:1.5;text-align:center;font-style:italic}
+.fc-back .fc-ex-cn{font-size:12px;color:var(--text-tertiary);margin-top:4px}
+.fc-acts{display:flex;gap:32px;margin-bottom:10px;justify-content:center;align-items:center}
+.fc-acts button{width:64px;height:64px;border-radius:50%;border:1px solid var(--border);cursor:pointer;background:var(--card);color:var(--text-secondary);font-size:24px;transition:all var(--transition);display:flex;align-items:center;justify-content:center}
+.fc-acts button:hover{border-color:var(--accent)}
+.fc-acts .btn-dont:hover{background:rgba(200,80,80,0.1);color:#C85050;border-color:#C85050}
+.fc-acts .btn-know:hover{background:rgba(201,100,66,0.1);color:var(--accent);border-color:var(--accent)}
+
+.fc-done{text-align:center;padding:60px 20px}
+.fc-done .big{font-size:48px;margin-bottom:12px}
+.fc-done .text{font-size:16px;color:var(--text-secondary);margin-bottom:8px}
+.fc-done .sub{font-size:13px;color:var(--text-tertiary);margin-bottom:24px}
+.fc-progress{margin-bottom:16px;width:100%}
+.fc-progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.fc-progress-fill{height:100%;background:var(--accent);transition:width 0.3s;border-radius:2px}
+/* Grammar */
+.gr-filter-wrapper{position:relative;margin-bottom:16px}
+.gr-filter-bar{display:flex;gap:6px;overflow:hidden;padding-bottom:2px}
+.gr-filter-bar.expanded{flex-wrap:wrap;overflow:visible}
+.gr-filter-bar .filter-btn{flex-shrink:0}
+.gr-toggle-btn{display:none;background:var(--accent-light);border:1px solid rgba(201,100,66,0.15);color:var(--accent);padding:6px 14px;border-radius:16px;font-size:11px;cursor:pointer;white-space:nowrap;font-family:var(--font-body);margin-top:6px}
+.gr-toggle-btn:hover{background:var(--accent);color:#fff}
+@media(max-width:500px){.gr-toggle-btn{display:inline-block}}
+.filter-btn{padding:7px 18px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:all var(--transition);font-family:var(--font-body);letter-spacing:0.3px}
+.filter-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.filter-btn:hover:not(.active){border-color:var(--text-tertiary)}
+.filter-btn.hidden{display:none}
+.gr-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:22px 24px;margin-bottom:14px;transition:background var(--transition)}
+.gr-card h3{font-family:var(--font-title);font-size:15px;font-weight:500;color:var(--text);margin-bottom:8px}
+.gr-body{font-size:13px;line-height:1.9;color:var(--text-secondary)}
+.gr-ex{background:rgba(201,100,66,0.04);border-radius:8px;padding:12px 14px;margin:10px 0 4px;font-size:12px;line-height:1.7}
+.gr-ex .cn{color:var(--text-tertiary);font-size:11px}
+/* Settings */
+.settings-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;margin-bottom:16px;transition:background var(--transition)}
+.settings-card h3{font-family:var(--font-title);font-size:16px;font-weight:600;margin-bottom:20px}
+.setting-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid var(--border)}
+.setting-row:last-child{border:none}
+.setting-label{font-size:14px;color:var(--text);letter-spacing:0.3px}
+.setting-desc{font-size:11px;color:var(--text-tertiary);margin-top:2px}
+.setting-control{display:flex;align-items:center;gap:12px}
+.setting-control input[type="number"]{width:56px;padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;text-align:center;outline:none;font-family:'Inter',monospace}
+.setting-control input[type="number"]:focus{border-color:var(--accent)}
+.setting-control .num-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all var(--transition)}
+.setting-control .num-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.theme-toggle{display:flex;gap:8px}
+.theme-opt{padding:8px 18px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all var(--transition);font-family:var(--font-body)}
+.theme-opt.active{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
+.vol-icon{width:18px;height:18px;color:var(--text-secondary);flex-shrink:0}
+/* Modal */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.35);z-index:100;backdrop-filter:blur(4px)}
+.modal-overlay.active{display:block}
+.modal-content{position:absolute;bottom:0;left:0;right:0;background:var(--card);border-radius:20px 20px 0 0;padding:32px;max-height:70vh;overflow-y:auto;border-top:1px solid var(--border);animation:slideUp 0.3s ease}
+.modal-handle{width:32px;height:3px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal-word{font-family:var(--font-title);font-size:26px;font-weight:700;text-align:center;color:var(--text)}
+.modal-mn{text-align:center;font-size:16px;color:var(--text-secondary);margin:6px 0 16px}
+.modal-detail{font-size:13px;line-height:1.8;color:var(--text-secondary)}
+.modal-detail strong{color:var(--text)}
+/* Mobile nav */
+.mobile-nav{display:none;height:56px;background:var(--card);border-top:1px solid var(--border);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+.mobile-nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:none;background:none;color:var(--text-tertiary);font-size:9px;cursor:pointer;transition:color var(--transition)}
+.mobile-nav button.active{color:var(--accent)}
+.mobile-nav button svg{width:20px;height:20px}
+.empty-small{text-align:center;padding:40px 20px;color:var(--text-tertiary);font-size:13px}
+@media(min-width:769px){
+  .main-content{padding:clamp(24px,4vh,48px) clamp(24px,4vw,96px) 24px}
+  .page{max-width:960px}
+  #pageFc{max-width:none}
+  .flashcard{aspect-ratio:auto;height:clamp(340px,62vh,720px)}
+  .fc-front .fc-wd{font-size:clamp(34px,3.1vw,60px)}
+  .gr-body,.gr-ex{max-width:72ch}
+}
+@media(max-width:768px){
+  .sidebar{display:none}
+  .main-header{display:flex}
+  .main-content{padding:20px 16px 16px}
+  .mobile-nav{display:flex}
+  .app{flex-direction:column}
+  .daily-word{font-size:30px}
+  .stats-row{grid-template-columns:repeat(4,1fr);gap:8px}
+  .stat-card{padding:12px 6px}
+  .stat-num{font-size:17px}
+  .settings-card{padding:24px 20px}
+}
+@media(max-width:374px){.daily-word{font-size:26px}.stats-row{grid-template-columns:repeat(2,1fr)}}
+</style>
+<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">German Daily</div>
+    <nav class="sidebar-nav">
+      <button class="sidebar-item active" data-nav="daily"><span class="icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><circle cx="10" cy="10" r="4.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M3.5 3.5l1.4 1.4M15.1 15.1l1.4 1.4M3.5 16.5l1.4-1.4M15.1 4.9l1.4-1.4"/></svg></span> 首页</button>
+      <button class="sidebar-item" data-nav="fc"><span class="icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><rect x="2.5" y="3" width="15" height="14" rx="2"/><path d="M10 7v6M7 10h6"/></svg></span> 闪卡</button>
+      <button class="sidebar-item" data-nav="grammarDay"><span class="icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><path d="M3 4h14v12H3z"/><path d="M6 2v2M14 2v2M3 7h14"/><path d="M6 10h2M10 10h2"/></svg></span> 每日语法</button>
+      <button class="sidebar-item" data-nav="settings"><span class="icon"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" width="18" height="18"><circle cx="10" cy="10" r="2.5"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6l1.4 1.4M4 16l1.4-1.4M14.6 5.4l1.4-1.4"/></svg></span> 设置</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div style="font-size:11px;color:var(--text-tertiary);padding:0 14px;letter-spacing:0.3px" id="dateDisplayDesktop"></div>
+    </div>
+  </aside>
+  <!-- Main -->
+  <div class="main">
+    <div class="main-header">
+      <span class="logo">German Daily</span>
+      <span style="font-size:12px;color:var(--text-tertiary)" id="dateDisplayMobile"></span>
+    </div>
+    <div class="main-content" id="mainContent">
+      <!-- Daily Page -->
+      <div class="page active" id="pageDaily">
+        <div class="search-box">
+          <input type="text" id="globalSearch" placeholder="搜索单词...">
+          <div class="search-results" id="searchResults"></div>
+        </div>
+        <div class="daily-card">
+          <div class="daily-label">今日单词</div>
+          <div class="daily-progress" id="dailyProgress"></div>
+          <div class="daily-word" id="dw"></div>
+          <div class="daily-meaning" id="dm"></div>
+          <div class="daily-example" id="de"></div>
+          <div class="daily-example-cn" id="dec"></div>
+          <div class="daily-nav">
+            <button data-cmd="prev">← 上一张</button>
+            <button data-cmd="next">下一张 →</button>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-num" id="st1">0</div><div class="stat-label">总词汇</div></div>
+          <div class="stat-card"><div class="stat-num" id="st2">0</div><div class="stat-label">学习天数</div></div>
+          <div class="stat-card"><div class="stat-num" id="st3">0</div><div class="stat-label">已掌握</div></div>
+          <div class="stat-card"><div class="stat-num" id="st4">0</div><div class="stat-label">待复习</div></div>
+        </div>
+        <div class="quick-actions">
+          <button class="quick-btn" data-nav="fc"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><rect x="2" y="2.5" width="14" height="13" rx="2"/><path d="M9 5.5v6M6 8.5h6"/></svg> 开始闪卡</button>
+          <button class="quick-btn" data-nav="grammar"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><path d="M3 15.5A2 2 0 0 1 5 13.5h10"/><path d="M5 2.5h10v15H5a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2z"/><path d="M7 5.5h5M7 8h5"/></svg> 语法速查</button>
+          <button class="quick-btn" data-nav="settings"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><circle cx="9" cy="9" r="2.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.5 3.5l1.5 1.5M13 13l1.5 1.5M3.5 14.5l1.5-1.5M13 5l1.5-1.5"/></svg> 学习设置</button>
+          <button class="quick-btn" onclick="goto('grammarDay')"><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><path d="M2 4h3l3 10 2-7 2 7 3-10h3"/><path d="M15 12h2v3h-3"/></svg> 每日语法</button>
+        </div>
+      </div>
+      <!-- Flashcard -->
+      <div class="page" id="pageFc">
+        <div id="fcContent"></div>
+      </div>
+      <!-- Grammar -->
+      <div class="page" id="pageGrammar">
+        <div class="gr-filter-wrapper">
+          <div class="gr-filter-bar" id="gf"></div>
+          <button class="gr-toggle-btn" id="grToggle">展开全部 ▾</button>
+        </div>
+        <div id="gl"></div>
+      </div>
+      <!-- Settings -->
+      <div class="page" id="pageGrammarDay"><div id="grammarDayContent"></div></div>
+      <div class="page" id="pageSettings"><p role="status" id="syncStatus" style="color:var(--text-secondary);margin:0 0 16px">正在读取学习进度…</p>
+        <div class="settings-card">
+          <h3><svg viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" width="16" height="16" style="vertical-align:-2px;margin-right:4px"><circle cx="9" cy="9" r="2.5"/><path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.5 3.5l1.5 1.5M13 13l1.5 1.5M3.5 14.5l1.5-1.5M13 5l1.5-1.5"/></svg> 学习设置</h3>
+          <div class="setting-row">
+            <div><div class="setting-label">每日复习量</div><div class="setting-desc">每次闪卡复习的旧词数</div></div>
+            <div class="setting-control">
+              <button class="num-btn" data-adjust="review" data-dir="-1">−</button>
+              <input type="number" id="reviewCount" min="1" max="50" value="10">
+              <button class="num-btn" data-adjust="review" data-dir="1">+</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">每日新词数</div><div class="setting-desc">每次闪卡学习的新单词</div></div>
+            <div class="setting-control">
+              <button class="num-btn" data-adjust="new" data-dir="-1">−</button>
+              <input type="number" id="newCount" min="1" max="30" value="5">
+              <button class="num-btn" data-adjust="new" data-dir="1">+</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">外观主题</div><div class="setting-desc">切换深色/浅色模式</div></div>
+            <div class="theme-toggle" id="themeToggle">
+              <button class="theme-opt" data-theme-val="dark"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" style="vertical-align:-2px;margin-right:4px"><path d="M14 10.5a7 7 0 0 1-8.5-8.5A7 7 0 1 0 14 10.5z"/></svg> 深色</button>
+              <button class="theme-opt" data-theme-val="light"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14" style="vertical-align:-2px;margin-right:4px"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5l1.5 1.5M3 13l1.5-1.5M11.5 4.5l1.5-1.5"/></svg> 浅色</button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div><div class="setting-label">朗读发音</div><div class="setting-desc">点击 🔊 朗读德语单词</div></div>
+            <div class="setting-control">
+              <svg class="vol-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              <label style="font-size:13px;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;gap:6px">
+                <input type="checkbox" id="volToggle" checked style="accent-color:var(--accent);width:16px;height:16px;cursor:pointer">
+                开启
+              </label>
+            </div>
+          </div>
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:center">
+            <div style="font-size:12px;color:var(--text-tertiary);line-height:1.8">
+              <span id="stPct">0%</span> 已掌握 · 连续学习 <span id="stDays">0</span> 天
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Mobile Nav -->
+    <div class="mobile-nav" id="mobileNav">
+      <button class="active" data-nav="daily"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2"/></svg><span>首页</span></button>
+      <button data-nav="fc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M10 7v6M7 10h6"/></svg><span>闪卡</span></button>
+      <button data-nav="grammarDay"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18v14H3z"/><path d="M7 3v2M17 3v2M3 9h18"/><path d="M7 13h2M11 13h2"/></svg><span>语法</span></button>
+      <button data-nav="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M1 12h2M21 12h2M4 4l1 1M19 19l1 1M4 20l1-1M19 5l1-1"/></svg><span>设置</span></button>
+    </div>
+  </div>
+</div>
+<!-- Modal -->
+<div class="modal-overlay" id="mo"><div class="modal-content"><div class="modal-handle"></div><div class="modal-word" id="mw"></div><div class="modal-mn" id="mm"></div><div class="modal-detail" id="md"></div></div></div>
+<script>
+var WD = [{"article": "der", "word": "Kaffee", "meaning": "咖啡", "type": "noun", "unit": "1", "plural": "o.Pl.", "example": "Trinken Sie Kaffee?", "cn": "您喝咖啡吗？"}, {"article": "das", "word": "Kino", "meaning": "电影院", "type": "noun", "unit": "1", "plural": "-s", "example": "Ich gehe ins Kino.", "cn": "我去电影院。"}, {"article": "das", "word": "Bett", "meaning": "床", "type": "noun", "unit": "1", "plural": "-en", "example": "Das Bett ist breit.", "cn": "这张床很宽。"}, {"article": "das", "word": "Kind", "meaning": "小孩", "type": "noun", "unit": "1", "plural": "-er", "example": "Das Kind ist glucklich.", "cn": "这个孩子很开心。"}, {"article": "der", "word": "Mann", "meaning": "男人", "type": "noun", "unit": "1", "plural": "-er", "example": "Der Mann ist stark.", "cn": "这个男人很强壮。"}, {"article": "die", "word": "Sonne", "meaning": "太阳", "type": "noun", "unit": "1", "plural": "-n", "example": "Die Sonne steigt.", "cn": "太阳升起来了。"}, {"article": "", "word": "gut", "meaning": "好的", "type": "other", "unit": "1", "plural": "", "example": "Mein Deutsch ist gut.", "cn": "我的德语很好。"}, {"article": "der", "word": "Tag", "meaning": "白天", "type": "noun", "unit": "1", "plural": "-e", "example": "Guten Tag!", "cn": "日安！"}, {"article": "", "word": "ich", "meaning": "我", "type": "other", "unit": "1", "plural": "", "example": "Ich heie Zhao Jianhui.", "cn": "我叫赵建辉。"}, {"article": "", "word": "heien", "meaning": "名叫", "type": "verb", "unit": "1", "plural": "", "example": "Wie heien Sie?", "cn": "您叫什么名字？"}, {"article": "", "word": "mein", "meaning": "我的", "type": "other", "unit": "1", "plural": "", "example": "Mein Name ist Sophie Lehmann.", "cn": "我的名字是苏菲·雷曼。"}, {"article": "der", "word": "Name", "meaning": "名字", "type": "noun", "unit": "1", "plural": "-n", "example": "Wie ist Ihr Name?", "cn": "您叫什么名字？"}, {"article": "", "word": "sein", "meaning": "是", "type": "verb", "unit": "1", "plural": "", "example": "Ich bin aus China.", "cn": "我来自中国。"}, {"article": "", "word": "kommen", "meaning": "来", "type": "verb", "unit": "1", "plural": "", "example": "Woher kommen Sie?", "cn": "您从哪里来？"}, {"article": "", "word": "aus", "meaning": "从", "type": "other", "unit": "1", "plural": "", "example": "Ich komme aus China.", "cn": "我来自中国。"}, {"article": "", "word": "China", "meaning": "中国", "type": "other", "unit": "1", "plural": "", "example": "China ist gro.", "cn": "中国很大。"}, {"article": "", "word": "und", "meaning": "和，与", "type": "other", "unit": "1", "plural": "", "example": "Sophie und ich lernen Deutsch.", "cn": "苏菲和我学德语。"}, {"article": "", "word": "Sie", "meaning": "您", "type": "other", "unit": "1", "plural": "", "example": "Kommen Sie?", "cn": "您来吗？"}, {"article": "", "word": "Deutschland", "meaning": "德国", "type": "other", "unit": "1", "plural": "", "example": "Er kommt aus Deutschland.", "cn": "他来自德国。"}, {"article": "die", "word": "Hand", "meaning": "手", "type": "noun", "unit": "1", "plural": "-e", "example": "Ein Mensch hat zwei Hande.", "cn": "一个人有两只手。"}, {"article": "", "word": "funf", "meaning": "五", "type": "other", "unit": "1", "plural": "", "example": "Es ist funf Uhr.", "cn": "现在五点了。"}, {"article": "das", "word": "Haus", "meaning": "屋子", "type": "noun", "unit": "1", "plural": "-er", "example": "Mein Haus ist schon.", "cn": "我的房子很漂亮。"}, {"article": "das", "word": "Geld", "meaning": "钱", "type": "noun", "unit": "1", "plural": "-er", "example": "Geld ist immer gut.", "cn": "钱总是好的。"}, {"article": "das", "word": "Fahrrad", "meaning": "自行车", "type": "noun", "unit": "1", "plural": "-er", "example": "Das ist ein Fahrrad.", "cn": "这是一辆自行车。"}, {"article": "das", "word": "Wasser", "meaning": "水", "type": "noun", "unit": "1", "plural": "o.Pl.", "example": "Das Wasser ist klar.", "cn": "水很清澈。"}, {"article": "", "word": "zehn", "meaning": "十", "type": "other", "unit": "1", "plural": "", "example": "Funf und funf gleich zehn.", "cn": "五加五等于十。"}, {"article": "die", "word": "Katze", "meaning": "猫", "type": "noun", "unit": "1", "plural": "-n", "example": "Die Katze ist su.", "cn": "这只猫很可爱。"}, {"article": "das", "word": "Buch", "meaning": "书", "type": "noun", "unit": "1", "plural": "-er", "example": "Das Buch ist neu.", "cn": "这本书是新的。"}, {"article": "der", "word": "Morgen", "meaning": "早晨", "type": "noun", "unit": "1", "plural": "-", "example": "Guten Morgen!", "cn": "早上好！"}, {"article": "die", "word": "Frau", "meaning": "女士", "type": "noun", "unit": "1", "plural": "-en", "example": "Das ist Frau Lehmann.", "cn": "这是雷曼女士。"}, {"article": "der", "word": "Herr", "meaning": "先生", "type": "noun", "unit": "1", "plural": "-en", "example": "Das ist Herr Lehmann.", "cn": "这是雷曼先生。"}, {"article": "", "word": "wie", "meaning": "如何", "type": "other", "unit": "1", "plural": "", "example": "Wie geht's?", "cn": "你好吗？"}, {"article": "", "word": "es", "meaning": "它", "type": "other", "unit": "1", "plural": "", "example": "Wie geht es Ihnen?", "cn": "您好吗？"}, {"article": "", "word": "gehen", "meaning": "走", "type": "verb", "unit": "1", "plural": "", "example": "Mir geht es gut.", "cn": "我很好。"}, {"article": "", "word": "Ihnen", "meaning": "您（第三格）", "type": "other", "unit": "1", "plural": "", "example": "Und Ihnen?", "cn": "您呢？"}, {"article": "", "word": "auch", "meaning": "也", "type": "other", "unit": "1", "plural": "", "example": "Ich lerne auch Deutsch.", "cn": "我也学德语。"}, {"article": "der", "word": "Schuler", "meaning": "中小学生", "type": "noun", "unit": "1", "plural": "-", "example": "Was macht der Schuler?", "cn": "这个学生在做什么？"}, {"article": "der", "word": "Tisch", "meaning": "桌子", "type": "noun", "unit": "2", "plural": "-e", "example": "Gibt es hier einen Tisch?", "cn": "这里有桌子吗？"}, {"article": "der", "word": "Stuhl", "meaning": "椅子", "type": "noun", "unit": "2", "plural": "-e", "example": "Das sind Tische und Stuhle.", "cn": "这些是桌子和椅子。"}, {"article": "die", "word": "Zeitung", "meaning": "报纸", "type": "noun", "unit": "2", "plural": "-en", "example": "Hier sind Zeitungen.", "cn": "这里是报纸。"}, {"article": "", "word": "hallo", "meaning": "喂，你好", "type": "other", "unit": "2", "plural": "", "example": "Hallo, Matthias!", "cn": "你好，马蒂亚斯！"}, {"article": "", "word": "dir", "meaning": "你（第三格）", "type": "other", "unit": "2", "plural": "", "example": "Wie geht's dir?", "cn": "你好吗？（对朋友）"}, {"article": "", "word": "sagen", "meaning": "说", "type": "verb", "unit": "2", "plural": "", "example": "Was sagen Sie?", "cn": "您说什么？"}, {"article": "", "word": "mal", "meaning": "次，一次", "type": "other", "unit": "2", "plural": "", "example": "Sag mal, hast du etwas Zeit?", "cn": "喂，你有时间吗？"}, {"article": "", "word": "wer", "meaning": "谁", "type": "other", "unit": "2", "plural": "", "example": "Wer kommt aus China?", "cn": "谁来自中国？"}, {"article": "", "word": "denn", "meaning": "究竟", "type": "other", "unit": "2", "plural": "", "example": "Wer ist denn das?", "cn": "这究竟是谁？"}, {"article": "", "word": "was", "meaning": "什么", "type": "other", "unit": "2", "plural": "", "example": "Was ist sie?", "cn": "她是做什么的？"}, {"article": "", "word": "sie", "meaning": "她", "type": "other", "unit": "2", "plural": "", "example": "Sie ist Lehrerin.", "cn": "她是女教师。"}, {"article": "der", "word": "Lehrer", "meaning": "教师", "type": "noun", "unit": "2", "plural": "-", "example": "Er ist Lehrer.", "cn": "他是教师。"}, {"article": "", "word": "woher", "meaning": "从哪里", "type": "other", "unit": "2", "plural": "", "example": "Woher kommen sie?", "cn": "他们从哪里来？"}, {"article": "", "word": "Berlin", "meaning": "柏林", "type": "other", "unit": "2", "plural": "", "example": "Ich komme aus Berlin.", "cn": "我来自柏林。"}, {"article": "", "word": "zu", "meaning": "到", "type": "other", "unit": "2", "plural": "", "example": "Ich gehe zu Peter.", "cn": "我去彼得那里。"}, {"article": "", "word": "bis", "meaning": "直至", "type": "other", "unit": "2", "plural": "", "example": "Bis gleich!", "cn": "一会儿见！"}, {"article": "", "word": "morgen", "meaning": "明天", "type": "other", "unit": "2", "plural": "", "example": "Bis morgen!", "cn": "明天见！"}, {"article": "der", "word": "Vorname", "meaning": "名字（名）", "type": "noun", "unit": "2", "plural": "-n", "example": "Das ist mein Vorname.", "cn": "这是我的名。"}, {"article": "der", "word": "Familienname", "meaning": "姓", "type": "noun", "unit": "2", "plural": "-n", "example": "Wie ist Ihr Familienname?", "cn": "您姓什么？"}, {"article": "das", "word": "Wiedersehen", "meaning": "再见", "type": "noun", "unit": "2", "plural": "o.Pl.", "example": "Auf Wiedersehen!", "cn": "再见！"}, {"article": "der", "word": "Abend", "meaning": "傍晚", "type": "noun", "unit": "2", "plural": "-e", "example": "Guten Abend!", "cn": "晚上好！"}, {"article": "die", "word": "Nacht", "meaning": "夜里", "type": "noun", "unit": "2", "plural": "-e", "example": "Gute Nacht!", "cn": "晚安！"}, {"article": "", "word": "dann", "meaning": "然后", "type": "other", "unit": "2", "plural": "", "example": "Bis dann!", "cn": "回头见！"}, {"article": "", "word": "gleich", "meaning": "马上", "type": "other", "unit": "2", "plural": "", "example": "Bis gleich!", "cn": "一会儿见！"}, {"article": "", "word": "Deutsch", "meaning": "德语", "type": "other", "unit": "2", "plural": "", "example": "Wir lernen Deutsch.", "cn": "我们学德语。"}, {"article": "", "word": "Ihr", "meaning": "您的", "type": "other", "unit": "2", "plural": "", "example": "Wie ist Ihr Name bitte?", "cn": "请问您叫什么名字？"}, {"article": "", "word": "man", "meaning": "人们", "type": "other", "unit": "2", "plural": "", "example": "Wie buchstabiert man das Wort?", "cn": "这个词怎么拼写？"}, {"article": "", "word": "schon", "meaning": "美丽的", "type": "other", "unit": "2", "plural": "", "example": "Die Kette ist schon.", "cn": "这条项链很漂亮。"}, {"article": "", "word": "jetzt", "meaning": "现在", "type": "other", "unit": "2", "plural": "", "example": "Jetzt offnen Sie bitte die Bucher.", "cn": "现在请您打开书。"}, {"article": "", "word": "lesen", "meaning": "阅读", "type": "verb", "unit": "2", "plural": "", "example": "Bitte lesen Sie.", "cn": "请您读。"}, {"article": "", "word": "zuerst", "meaning": "先", "type": "other", "unit": "2", "plural": "", "example": "Zuerst liest die Lehrerin Text 1.", "cn": "首先女老师读课文1。"}, {"article": "", "word": "machen", "meaning": "做", "type": "verb", "unit": "2", "plural": "", "example": "Karin macht alles.", "cn": "卡琳做所有事情。"}, {"article": "", "word": "wir", "meaning": "我们", "type": "other", "unit": "2", "plural": "", "example": "Wir sind aus China.", "cn": "我们来自中国。"}, {"article": "", "word": "fragen", "meaning": "问", "type": "verb", "unit": "2", "plural": "", "example": "Der Lehrer fragt Wang Hongliang.", "cn": "老师问王洪亮。"}, {"article": "", "word": "antworten", "meaning": "回答", "type": "verb", "unit": "2", "plural": "", "example": "Er antwortet schnell.", "cn": "他回答得很快。"}, {"article": "", "word": "horen", "meaning": "听", "type": "verb", "unit": "2", "plural": "", "example": "Wir horen zuerst Text 2.", "cn": "我们先听课文2。"}, {"article": "", "word": "ja", "meaning": "是", "type": "other", "unit": "2", "plural": "", "example": "Ja, ich komme aus China.", "cn": "是的，我来自中国。"}, {"article": "", "word": "studieren", "meaning": "大学学习", "type": "verb", "unit": "2", "plural": "", "example": "Was studieren Sie?", "cn": "您学什么专业？"}, {"article": "", "word": "lernen", "meaning": "学习", "type": "verb", "unit": "2", "plural": "", "example": "Lernst du Deutsch?", "cn": "你学德语吗？"}, {"article": "", "word": "du", "meaning": "你", "type": "other", "unit": "2", "plural": "", "example": "Was studierst du?", "cn": "你学什么？"}, {"article": "", "word": "wo", "meaning": "哪里", "type": "other", "unit": "2", "plural": "", "example": "Wo wohnt ihr?", "cn": "你们住在哪里？"}, {"article": "", "word": "wohnen", "meaning": "居住", "type": "verb", "unit": "2", "plural": "", "example": "Wir wohnen im Studentenwohnheim.", "cn": "我们住在学生宿舍。"}, {"article": "", "word": "er", "meaning": "他", "type": "other", "unit": "2", "plural": "", "example": "Er heit Thomas.", "cn": "他叫托马斯。"}, {"article": "", "word": "schreiben", "meaning": "写", "type": "verb", "unit": "2", "plural": "", "example": "Wie schreibt man das?", "cn": "这个怎么写？"}, {"article": "der", "word": "Student", "meaning": "大学生", "type": "noun", "unit": "2", "plural": "-en", "example": "Sind Sie Student?", "cn": "您是大学生吗？"}, {"article": "", "word": "spielen", "meaning": "玩", "type": "verb", "unit": "2", "plural": "", "example": "Was spielen wir jetzt?", "cn": "我们现在玩什么？"}, {"article": "der", "word": "Fuball", "meaning": "足球", "type": "noun", "unit": "2", "plural": "-e", "example": "Die Kinder spielen Fuball.", "cn": "孩子们在踢足球。"}, {"article": "", "word": "oder", "meaning": "或者", "type": "other", "unit": "2", "plural": "", "example": "Heit du Brigitte oder Birgit?", "cn": "你叫布里吉特还是比尔吉特？"}, {"article": "die", "word": "Musik", "meaning": "音乐", "type": "noun", "unit": "2", "plural": "-", "example": "Die Musik ist schon, nicht?", "cn": "音乐很美，不是吗？"}, {"article": "der", "word": "Freund", "meaning": "朋友", "type": "noun", "unit": "2", "plural": "-e", "example": "Thomas ist mein Freund.", "cn": "托马斯是我的朋友。"}, {"article": "das", "word": "Hobby", "meaning": "业余爱好", "type": "noun", "unit": "2", "plural": "-s", "example": "Meine Hobbys sind Lesen und Fuballspielen.", "cn": "我的业余爱好是阅读和踢足球。"}, {"article": "die", "word": "Universitat", "meaning": "综合性大学", "type": "noun", "unit": "2", "plural": "-en", "example": "Beate studiert an der Warschauer Universitat.", "cn": "贝亚特在华沙大学学习。"}, {"article": "", "word": "suchen", "meaning": "寻找", "type": "verb", "unit": "2", "plural": "", "example": "Sie sucht Brieffreunde aus aller Welt.", "cn": "她在寻找来自世界各地的笔友。"}, {"article": "", "word": "gern", "meaning": "乐意", "type": "other", "unit": "2", "plural": "", "example": "Ich hore gern Musik.", "cn": "我喜欢听音乐。"}, {"article": "die", "word": "Welt", "meaning": "世界", "type": "noun", "unit": "2", "plural": "-en", "example": "Die Welt ist gro.", "cn": "世界很大。"}, {"article": "das", "word": "Chinesisch", "meaning": "中文", "type": "noun", "unit": "2", "plural": "", "example": "Sie lernen gerade Chinesisch.", "cn": "他们正在学中文。"}, {"article": "das", "word": "Leben", "meaning": "生活", "type": "noun", "unit": "3", "plural": "-", "example": "Das Leben hier in Hangzhou ist schon.", "cn": "在杭州的生活很美好。"}, {"article": "", "word": "an", "meaning": "在", "type": "other", "unit": "3", "plural": "", "example": "Studiert sie noch an der Universitat?", "cn": "她还在大学学习吗？"}, {"article": "der", "word": "Vormittag", "meaning": "上午", "type": "noun", "unit": "3", "plural": "-e", "example": "Am Vormittag arbeitet man.", "cn": "上午人们工作。"}, {"article": "der", "word": "Mittag", "meaning": "中午", "type": "noun", "unit": "3", "plural": "-e", "example": "Es ist Mittag.", "cn": "现在是中午。"}, {"article": "der", "word": "Nachmittag", "meaning": "下午", "type": "noun", "unit": "3", "plural": "-e", "example": "Am Nachmittag lernen die Kinder nicht.", "cn": "下午孩子们不学习。"}, {"article": "", "word": "fruhstucken", "meaning": "吃早餐", "type": "verb", "unit": "3", "plural": "", "example": "Die Studentin fruhstuckt gut.", "cn": "这个女大学生早餐吃得好。"}, {"article": "", "word": "auf/stehen", "meaning": "起床", "type": "verb", "unit": "3", "plural": "", "example": "Stehen Sie bitte auf!", "cn": "请您站起来！"}, {"article": "", "word": "essen", "meaning": "吃", "type": "verb", "unit": "3", "plural": "", "example": "Martin isst gern Eis.", "cn": "马丁喜欢吃冰淇淋。"}, {"article": "der", "word": "Sport", "meaning": "体育运动", "type": "noun", "unit": "3", "plural": "o.Pl.", "example": "Am Morgen treiben wir Sport.", "cn": "早上我们做运动。"}, {"article": "", "word": "treiben", "meaning": "从事", "type": "verb", "unit": "3", "plural": "", "example": "Treibst du gern Sport?", "cn": "你喜欢做运动吗？"}, {"article": "die", "word": "Vorlesung", "meaning": "大课", "type": "noun", "unit": "3", "plural": "-en", "example": "Wo ist die Vorlesung?", "cn": "讲座在哪里？"}, {"article": "", "word": "besuchen", "meaning": "访问", "type": "verb", "unit": "3", "plural": "", "example": "Wir besuchen am Vormittag Vorlesungen.", "cn": "我们上午去听讲座。"}, {"article": "", "word": "nach", "meaning": "向", "type": "other", "unit": "3", "plural": "", "example": "Nach der Vorlesung fahrt Martin nach Hause.", "cn": "课后马丁开车回家。"}, {"article": "", "word": "fahren", "meaning": "搭乘", "type": "verb", "unit": "3", "plural": "", "example": "Ich fahre gern Rad.", "cn": "我喜欢骑自行车。"}, {"article": "", "word": "trinken", "meaning": "喝", "type": "verb", "unit": "3", "plural": "", "example": "Trinken Sie Kaffee oder Tee?", "cn": "您喝咖啡还是茶？"}, {"article": "", "word": "immer", "meaning": "总是", "type": "other", "unit": "3", "plural": "", "example": "Ich habe immer am Vormittag Unterricht.", "cn": "我上午总是有课。"}, {"article": "", "word": "haben", "meaning": "有", "type": "verb", "unit": "3", "plural": "", "example": "Hast du am Nachmittag auch Unterricht?", "cn": "你下午也有课吗？"}, {"article": "", "word": "von", "meaning": "从", "type": "other", "unit": "3", "plural": "", "example": "Von acht bis Viertel vor zwolf habe ich Unterricht.", "cn": "我从八点到十二点差一刻有课。"}, {"article": "", "word": "vor", "meaning": "在之前", "type": "other", "unit": "3", "plural": "", "example": "Ich stehe um Viertel vor sechs auf.", "cn": "我六点差一刻起床。"}, {"article": "", "word": "schon", "meaning": "已经", "type": "other", "unit": "3", "plural": "", "example": "Es ist schon Nacht.", "cn": "已经是夜里了。"}, {"article": "", "word": "wann", "meaning": "何时", "type": "other", "unit": "3", "plural": "", "example": "Wann stehst du denn auf?", "cn": "你究竟什么时候起床？"}, {"article": "", "word": "laufen", "meaning": "跑", "type": "verb", "unit": "3", "plural": "", "example": "Ich laufe schnell.", "cn": "我跑得快。"}, {"article": "", "word": "nicht", "meaning": "不", "type": "other", "unit": "3", "plural": "", "example": "Ich esse oft nicht zu Mittag.", "cn": "我经常不吃午饭。"}, {"article": "", "word": "dein", "meaning": "你的", "type": "other", "unit": "3", "plural": "", "example": "Dein Deutsch ist jetzt viel besser.", "cn": "你的德语现在好多了。"}, {"article": "", "word": "sehr", "meaning": "很", "type": "other", "unit": "3", "plural": "", "example": "Ich lerne auch sehr viel.", "cn": "我也学了很多。"}, {"article": "", "word": "viel", "meaning": "许多", "type": "other", "unit": "3", "plural": "", "example": "Thomas trinkt sehr viel Kaffee.", "cn": "托马斯喝很多咖啡。"}, {"article": "", "word": "wohin", "meaning": "向哪里", "type": "other", "unit": "3", "plural": "", "example": "Wohin fahrst du jetzt?", "cn": "你现在去哪里？"}, {"article": "", "word": "aber", "meaning": "但是", "type": "other", "unit": "3", "plural": "", "example": "Ich trinke viel Tee, aber sie trinkt viel Kaffee.", "cn": "我喝很多茶，但她喝很多咖啡。"}, {"article": "", "word": "halb", "meaning": "一半", "type": "other", "unit": "3", "plural": "", "example": "Ich fruhstucke um halb acht.", "cn": "我七点半吃早餐。"}, {"article": "", "word": "wie viel", "meaning": "多少", "type": "other", "unit": "3", "plural": "", "example": "Um wie viel Uhr isst du zu Mittag?", "cn": "你几点吃午饭？"}, {"article": "die", "word": "Uhr", "meaning": "钟点", "type": "noun", "unit": "3", "plural": "-en", "example": "Ich habe zwei Uhren.", "cn": "我有两块表。"}, {"article": "", "word": "heute", "meaning": "今天", "type": "other", "unit": "3", "plural": "", "example": "Hast du heute Abend Zeit?", "cn": "你今晚有时间吗？"}, {"article": "die", "word": "Zeit", "meaning": "时间", "type": "noun", "unit": "3", "plural": "-en", "example": "Wann hast du Zeit?", "cn": "你什么时候有时间？"}, {"article": "", "word": "geben", "meaning": "给予", "type": "verb", "unit": "3", "plural": "", "example": "Thomas gibt heute Abend eine Party.", "cn": "托马斯今晚办派对。"}, {"article": "", "word": "neu", "meaning": "新的", "type": "other", "unit": "3", "plural": "", "example": "Er ist neu hier.", "cn": "他是新来的。"}, {"article": "", "word": "kein", "meaning": "没有", "type": "other", "unit": "3", "plural": "", "example": "Wir haben heute keinen Unterricht.", "cn": "我们今天没有课。"}, {"article": "die", "word": "Prufung", "meaning": "考试", "type": "noun", "unit": "3", "plural": "-en", "example": "Wann haben wir eine Prufung?", "cn": "我们什么时候考试？"}, {"article": "die", "word": "Hausaufgabe", "meaning": "家庭作业", "type": "noun", "unit": "3", "plural": "-n", "example": "Ich mache zuerst meine Hausaufgaben.", "cn": "我先做家庭作业。"}, {"article": "", "word": "nie", "meaning": "从未", "type": "other", "unit": "3", "plural": "", "example": "Du hast nie Zeit fur deine Freunde.", "cn": "你从来没有时间给朋友们。"}, {"article": "", "word": "fur", "meaning": "为了", "type": "other", "unit": "3", "plural": "", "example": "Du hast auch nie Zeit fur dein Leben.", "cn": "你也没有时间给你的生活。"}, {"article": "", "word": "schlafen", "meaning": "睡觉", "type": "verb", "unit": "3", "plural": "", "example": "Schlafst du eigentlich noch?", "cn": "你到底还睡不睡觉？"}, {"article": "", "word": "spat", "meaning": "迟", "type": "other", "unit": "3", "plural": "", "example": "Es ist schon spat.", "cn": "已经晚了。"}, {"article": "", "word": "beginnen", "meaning": "开始", "type": "verb", "unit": "3", "plural": "", "example": "Der Unterricht beginnt.", "cn": "课开始了。"}, {"article": "", "word": "hundert", "meaning": "百", "type": "other", "unit": "3", "plural": "", "example": "Die Universitat ist sechshundert Jahre alt.", "cn": "这所大学有六百年历史。"}, {"article": "", "word": "tausend", "meaning": "千", "type": "other", "unit": "3", "plural": "", "example": "Zweitausend Deutsche studieren in China.", "cn": "两千德国人在中国学习。"}, {"article": "das", "word": "Auto", "meaning": "小汽车", "type": "noun", "unit": "3", "plural": "-s", "example": "Das sind Autos aus Deutschland.", "cn": "这些是来自德国的小汽车。"}, {"article": "", "word": "interessant", "meaning": "有趣的", "type": "other", "unit": "3", "plural": "", "example": "Das ist aber interessant.", "cn": "这真有趣。"}, {"article": "", "word": "oft", "meaning": "经常", "type": "other", "unit": "3", "plural": "", "example": "Schreibt ihr auch oft Mails?", "cn": "你们也经常写邮件吗？"}, {"article": "", "word": "sehen", "meaning": "看", "type": "verb", "unit": "3", "plural": "", "example": "Was siehst du denn gerade?", "cn": "你究竟在看什么？"}, {"article": "", "word": "ab/fahren", "meaning": "开出", "type": "verb", "unit": "3", "plural": "", "example": "Wann fahrt der Zug von Berlin ab?", "cn": "这列火车什么时候从柏林出发？"}, {"article": "das", "word": "Jahr", "meaning": "年", "type": "noun", "unit": "3", "plural": "-e", "example": "Wie viele Tage hat ein Jahr?", "cn": "一年有多少天？"}, {"article": "", "word": "alt", "meaning": "老的", "type": "other", "unit": "3", "plural": "", "example": "Ich bin 20 Jahre alt.", "cn": "我20岁。"}, {"article": "die", "word": "Familie", "meaning": "家庭", "type": "noun", "unit": "4", "plural": "-n", "example": "Meine Familie hat vier Mitglieder.", "cn": "我家有四口人。"}, {"article": "die", "word": "Eltern", "meaning": "父母亲", "type": "noun", "unit": "4", "plural": "Pl.", "example": "Das sind unsere Eltern.", "cn": "这是我们的父母。"}, {"article": "der", "word": "Vater", "meaning": "父亲", "type": "noun", "unit": "4", "plural": "~", "example": "Mein Vater heit Jonas.", "cn": "我父亲叫约纳斯。"}, {"article": "die", "word": "Mutter", "meaning": "母亲", "type": "noun", "unit": "4", "plural": "~", "example": "Meine Mutter heit Lena.", "cn": "我母亲叫莱娜。"}, {"article": "der", "word": "Sohn", "meaning": "儿子", "type": "noun", "unit": "4", "plural": "-e", "example": "Ich habe einen Sohn und eine Tochter.", "cn": "我有一个儿子和一个女儿。"}, {"article": "die", "word": "Tochter", "meaning": "女儿", "type": "noun", "unit": "4", "plural": "~", "example": "Ich habe einen Sohn und eine Tochter.", "cn": "我有一个儿子和一个女儿。"}, {"article": "der", "word": "Bruder", "meaning": "兄弟", "type": "noun", "unit": "4", "plural": "~", "example": "Ich habe einen Bruder.", "cn": "我有一个兄弟。"}, {"article": "die", "word": "Schwester", "meaning": "姐妹", "type": "noun", "unit": "4", "plural": "-n", "example": "Ich habe eine Schwester.", "cn": "我有一个姐妹。"}, {"article": "das", "word": "Enkelkind", "meaning": "孙子/孙女", "type": "noun", "unit": "4", "plural": "-er", "example": "Ich bin euer Enkelkind.", "cn": "我是你们的孙子。"}, {"article": "die", "word": "Groeltern", "meaning": "祖父母", "type": "noun", "unit": "4", "plural": "Pl.", "example": "Das sind meine Groeltern.", "cn": "这是我的祖父母。"}, {"article": "", "word": "etwas", "meaning": "某事，一些", "type": "other", "unit": "4", "plural": "", "example": "Hast du etwas Zeit?", "cn": "你有时间吗？"}, {"article": "", "word": "vor/haben", "meaning": "打算，计划", "type": "verb", "unit": "4", "plural": "", "example": "Was hast du morgen vor?", "cn": "你明天打算做什么？"}, {"article": "die", "word": "Feier", "meaning": "庆祝活动", "type": "noun", "unit": "4", "plural": "-n", "example": "Wir planen eine Feier.", "cn": "我们计划一个庆祝活动。"}, {"article": "", "word": "finden", "meaning": "觉得，找到", "type": "verb", "unit": "4", "plural": "", "example": "Das finde ich gut!", "cn": "我觉得这很好！"}, {"article": "", "word": "meinen", "meaning": "认为", "type": "verb", "unit": "4", "plural": "", "example": "Was meinst du dazu?", "cn": "你觉得怎么样？"}, {"article": "", "word": "nichts", "meaning": "什么也没有", "type": "other", "unit": "4", "plural": "", "example": "Da habe ich nichts vor.", "cn": "我没什么计划。"}, {"article": "", "word": "ein/laden", "meaning": "邀请", "type": "verb", "unit": "4", "plural": "", "example": "Wir laden Freunde ein.", "cn": "我们邀请朋友。"}, {"article": "", "word": "andere", "meaning": "其他的", "type": "other", "unit": "4", "plural": "", "example": "Andere Freunde kommen auch.", "cn": "其他的朋友也来。"}, {"article": "", "word": "ein/kaufen", "meaning": "购物", "type": "verb", "unit": "4", "plural": "", "example": "Ich gehe gern einkaufen.", "cn": "我喜欢购物。"}, {"article": "", "word": "bestellen", "meaning": "订购，预定", "type": "verb", "unit": "4", "plural": "", "example": "Ich bestelle eine Torte.", "cn": "我订一个蛋糕。"}, {"article": "", "word": "vor/schlagen", "meaning": "建议，提议", "type": "verb", "unit": "4", "plural": "", "example": "Was schlagt du vor?", "cn": "你建议什么？"}, {"article": "", "word": "mit/machen", "meaning": "一起做", "type": "verb", "unit": "4", "plural": "", "example": "Machen Sie mit!", "cn": "请您一起做！"}, {"article": "", "word": "richtig", "meaning": "正确的", "type": "other", "unit": "4", "plural": "", "example": "Das ist richtig.", "cn": "这是正确的。"}, {"article": "", "word": "aus/sehen", "meaning": "看上去", "type": "verb", "unit": "4", "plural": "", "example": "Sie sieht fit aus.", "cn": "她看上去很健康。"}, {"article": "", "word": "verheiratet", "meaning": "已婚的", "type": "other", "unit": "4", "plural": "", "example": "Ich bin noch nicht verheiratet.", "cn": "我还没结婚。"}, {"article": "", "word": "an/rufen", "meaning": "打电话", "type": "verb", "unit": "4", "plural": "", "example": "Rufen Sie mich an!", "cn": "请给我打电话！"}, {"article": "", "word": "mit/kommen", "meaning": "一起来", "type": "verb", "unit": "4", "plural": "", "example": "Kommst du mit?", "cn": "你一起来吗？"}, {"article": "der", "word": "Vorschlag", "meaning": "建议", "type": "noun", "unit": "4", "plural": "-e", "example": "Ich habe einen Vorschlag.", "cn": "我有一个建议。"}, {"article": "", "word": "an/nehmen", "meaning": "接受", "type": "verb", "unit": "4", "plural": "", "example": "Nimmst du den Vorschlag an?", "cn": "你接受这个建议吗？"}, {"article": "", "word": "einmal", "meaning": "一次", "type": "other", "unit": "4", "plural": "", "example": "Singen Sie noch einmal!", "cn": "请再唱一次！"}, {"article": "das", "word": "Tier", "meaning": "动物", "type": "noun", "unit": "4", "plural": "-e", "example": "Das Tier ist lieb.", "cn": "这个动物很可爱。"}, {"article": "", "word": "normal", "meaning": "正常的", "type": "other", "unit": "4", "plural": "", "example": "Das ist ganz normal.", "cn": "这完全正常。"}, {"article": "", "word": "als", "meaning": "作为", "type": "other", "unit": "4", "plural": "", "example": "Er arbeitet als Ingenieur.", "cn": "他作为工程师工作。"}, {"article": "der", "word": "Kaufmann", "meaning": "商人", "type": "noun", "unit": "4", "plural": "-leute", "example": "Er ist Kaufmann von Beruf.", "cn": "他的职业是商人。"}, {"article": "die", "word": "Wohnung", "meaning": "套房，公寓", "type": "noun", "unit": "4", "plural": "-en", "example": "Das ist meine Wohnung.", "cn": "这是我的公寓。"}, {"article": "die", "word": "Stelle", "meaning": "职位", "type": "noun", "unit": "4", "plural": "-n", "example": "Er findet eine Stelle.", "cn": "他找到了一个职位。"}, {"article": "", "word": "reisen", "meaning": "旅行", "type": "verb", "unit": "4", "plural": "", "example": "Er reist viel.", "cn": "他经常旅行。"}, {"article": "das", "word": "Bier", "meaning": "啤酒", "type": "noun", "unit": "5", "plural": "-e", "example": "Trinken Sie Bier?", "cn": "您喝啤酒吗？"}, {"article": "die", "word": "Wurst", "meaning": "香肠", "type": "noun", "unit": "5", "plural": "-e", "example": "Isst du gern Wurste?", "cn": "你喜欢吃香肠吗？"}, {"article": "der", "word": "Reis", "meaning": "米饭", "type": "noun", "unit": "5", "plural": "o.Pl.", "example": "Wir essen gern Reis.", "cn": "我们喜欢吃米饭。"}, {"article": "die", "word": "Kartoffel", "meaning": "土豆", "type": "noun", "unit": "5", "plural": "-n", "example": "Ich esse gern Kartoffeln.", "cn": "我喜欢吃土豆。"}, {"article": "die", "word": "Milch", "meaning": "牛奶", "type": "noun", "unit": "5", "plural": "o.Pl.", "example": "Trinkst du Milch?", "cn": "你喝牛奶吗？"}, {"article": "das", "word": "Brot", "meaning": "面包", "type": "noun", "unit": "5", "plural": "-e", "example": "Das Brot ist alt.", "cn": "这个面包不新鲜了。"}, {"article": "das", "word": "Brotchen", "meaning": "小面包", "type": "noun", "unit": "5", "plural": "-", "example": "Ich esse lieber Brotchen.", "cn": "我更喜欢吃小面包。"}, {"article": "das", "word": "Fleisch", "meaning": "肉", "type": "noun", "unit": "5", "plural": "o.Pl.", "example": "Essen Sie nicht zu viel Fleisch.", "cn": "不要吃太多肉。"}, {"article": "der", "word": "Fisch", "meaning": "鱼", "type": "noun", "unit": "5", "plural": "-e", "example": "Der Fisch schmeckt gut.", "cn": "这鱼味道很好。"}, {"article": "das", "word": "Ei", "meaning": "鸡蛋", "type": "noun", "unit": "5", "plural": "-er", "example": "Woher kommt das Ei?", "cn": "鸡蛋从哪里来？"}, {"article": "das", "word": "Restaurant", "meaning": "餐厅", "type": "noun", "unit": "5", "plural": "-s", "example": "Das ist ein China-Restaurant.", "cn": "这是一家中餐馆。"}, {"article": "die", "word": "Speisekarte", "meaning": "菜单", "type": "noun", "unit": "5", "plural": "-n", "example": "Er macht die Speisekarte auf.", "cn": "他打开菜单。"}, {"article": "das", "word": "Schnitzel", "meaning": "肉排", "type": "noun", "unit": "5", "plural": "-", "example": "Ich esse ein Schnitzel.", "cn": "我吃一份肉排。"}, {"article": "der", "word": "Salat", "meaning": "色拉", "type": "noun", "unit": "5", "plural": "-e", "example": "Es gibt Obstsalat.", "cn": "有水果色拉。"}, {"article": "die", "word": "Suppe", "meaning": "汤", "type": "noun", "unit": "5", "plural": "-n", "example": "Man isst eine Suppe.", "cn": "人们喝汤。"}, {"article": "die", "word": "Vorspeise", "meaning": "头盘", "type": "noun", "unit": "5", "plural": "-n", "example": "Ich mochte eine Suppe als Vorspeise.", "cn": "我想要一碗汤作为头盘。"}, {"article": "der", "word": "Saft", "meaning": "果汁", "type": "noun", "unit": "5", "plural": "-e", "example": "Ich bestelle einen Apfelsaft.", "cn": "我点一杯苹果汁。"}, {"article": "", "word": "wunschen", "meaning": "想要，祝愿", "type": "verb", "unit": "5", "plural": "", "example": "Was wunschen Sie?", "cn": "您想要什么？"}, {"article": "der", "word": "Appetit", "meaning": "胃口", "type": "noun", "unit": "5", "plural": "o.Pl.", "example": "Guten Appetit!", "cn": "祝好胃口！"}, {"article": "", "word": "schmecken", "meaning": "味道好，合口味", "type": "verb", "unit": "5", "plural": "", "example": "Schmeckt es Ihnen?", "cn": "您觉得好吃吗？"}, {"article": "", "word": "gefallen", "meaning": "使喜欢", "type": "verb", "unit": "5", "plural": "", "example": "Das Restaurant gefallt mir sehr.", "cn": "我很喜欢这家餐厅。"}, {"article": "", "word": "zahlen", "meaning": "付钱", "type": "verb", "unit": "5", "plural": "", "example": "Zahlen, bitte!", "cn": "买单！"}, {"article": "das", "word": "Hauptgericht", "meaning": "主菜", "type": "noun", "unit": "5", "plural": "-e", "example": "Nach der Vorspeise kommt das Hauptgericht.", "cn": "头盘之后是主菜。"}, {"article": "", "word": "kalt", "meaning": "冷的", "type": "other", "unit": "5", "plural": "", "example": "Das Essen ist kalt.", "cn": "菜是冷的。"}, {"article": "", "word": "empfehlen", "meaning": "推荐", "type": "verb", "unit": "5", "plural": "", "example": "Was empfehlen Sie uns?", "cn": "您推荐什么给我们？"}, {"article": "das", "word": "Fruhstuck", "meaning": "早餐", "type": "noun", "unit": "5", "plural": "-e", "example": "Zum Fruhstuck trinke ich Kaffee.", "cn": "早餐我喝咖啡。"}];
+var GT = [{"tips": "词干+人称词尾：ich-e, du-st, er/sie/es-t, wir-en, ihr-t, sie/Sie-en。注意arbeiten词干以-t结尾先加-e。", "questions": [{"q": "ich ___ (lernen) Deutsch", "a": "lerne", "opts": ["lerne", "lernst", "lernt"]}, {"q": "du ___ (arbeiten) gern", "a": "arbeitest", "opts": ["arbeitest", "arbeitet", "arbeiten"]}, {"q": "Er ___ (machen) Hausaufgaben", "a": "macht", "opts": ["mache", "machst", "macht"]}]}, {"tips": "区分du(你)和Sie(您)：朋友用du，长辈用Sie。Bis+时间=到…见：Bis morgen!/Bis dann!", "questions": [{"q": "早上好！", "a": "Guten Morgen!", "opts": ["Guten Abend!", "Guten Morgen!", "Gute Nacht!"]}, {"q": "明天见！", "a": "Bis morgen!", "opts": ["Bis dann!", "Bis morgen!", "Bis gleich!"]}, {"q": "您叫什么名字？", "a": "Wie ist Ihr Name?", "opts": ["Wie ist dein Name?", "Wie heit du?", "Wie ist Ihr Name?"]}]}, {"tips": "不规则动词只在du/er/sie/es变音，其他不变。haben(有)要记：ich habe, du hast, er hat。sein完全不规则。", "questions": [{"q": "Herr Wang ___ (lesen) ein Buch.", "a": "liest", "opts": ["lest", "liest", "lese"]}, {"q": "___ (fahren) du nach Berlin?", "a": "Fahrst", "opts": ["Fahrst", "Fahrt", "Fahre"]}, {"q": "Ich ___ (sein) aus China.", "a": "bin", "opts": ["bin", "bist", "ist"]}]}, {"tips": "只有阳性冠词变：der->den, ein->einen。代词：mich/dich/ihn/sie/es。wen问人，was问物。", "questions": [{"q": "Ich habe ___ (ein) Tisch.", "a": "einen", "opts": ["ein", "einen", "eine"]}, {"q": "Ich besuche ___ (du).", "a": "dich", "opts": ["dir", "dich", "du"]}, {"q": "___ fragt der Lehrer? Den Schuler.", "a": "Wen", "opts": ["Wer", "Wen", "Wem"]}]}, {"tips": "um+钟点(um acht/um halb sieben)。am+时段(am Morgen/am Abend)。数字21-99=个位+und+十位。", "questions": [{"q": "我六点半起床。", "a": "Ich stehe um halb sieben auf.", "opts": ["Ich stehe um sieben auf.", "Ich stehe um halb sieben auf.", "Ich stehe um Viertel nach sechs auf."]}, {"q": "Es ist ___ (8:15).", "a": "Viertel nach acht", "opts": ["Viertel nach acht", "Viertel vor acht", "acht Uhr funfzehn"]}, {"q": "Am ___ habe ich Unterricht. (上午)", "a": "Am Vormittag", "opts": ["Am Vormittag", "Am Nachmittag", "Am Abend"]}]}, {"tips": "mochte表示想要(委婉)，mogen表示喜欢。框形结构：Ich mochte Deutsch lernen。动词不定式放最后。", "questions": [{"q": "Ich ___ Deutsch lernen.", "a": "mochte", "opts": ["mag", "mochte", "magst"]}, {"q": "___ du einen Kaffee?", "a": "Mochtest", "opts": ["Magst", "Mochtest", "Mocht"]}, {"q": "Die Schuler ___ ihre Lehrerin. (喜欢)", "a": "mogen", "opts": ["mogen", "mochten", "mogst"]}]}, {"tips": "Dativ回答wem(给谁)。冠词：dem/einem(阳/中), der/einer(阴)。语序：名词D+名词A / 代词A+代词D。", "questions": [{"q": "Wie geht es ___ (du)?", "a": "dir", "opts": ["dich", "dir", "du"]}, {"q": "Der Lehrer erklart ___ (der Schuler) den Text.", "a": "dem Schuler", "opts": ["den Schuler", "dem Schuler", "der Schuler"]}, {"q": "Ich danke ___ (mein) Lehrer.", "a": "meinem", "opts": ["meinem", "meinen", "meine"]}]}, {"tips": "du命令式：词干+(e)! 换音动词要换音(sprich!)。ihr命令式：直接用ihr变位。sein特殊：Sei!/Seid!", "questions": [{"q": "___ (sein) ruhig! (du)", "a": "Sei", "opts": ["Sei", "Bist", "Ist"]}, {"q": "___ (sprechen) bitte langsam! (ihr)", "a": "Sprecht", "opts": ["Sprich", "Sprecht", "Sprechen"]}, {"q": "___ (haben) keine Angst! (du)", "a": "Hab", "opts": ["Hab", "Habe", "Hast"]}]}, {"tips": "可分动词: 前缀后置句末(steht auf)。零冠词: 职业/国籍/物质名词无冠词。否定: kein+名词, nicht+其他。物主代词N/A回答wessen。ja/nein/doch: 不带否定词用ja/nein, 带否定词用doch/nein。", "questions": [{"q": "Ich ___ viel ___ (vor/haben)", "a": "habe ... vor", "opts": ["habe ... vor", "vor ... habe", "hat ... vor"]}, {"q": "Hast du keine Zeit? — ___, ich habe Zeit.", "a": "Doch", "opts": ["Ja", "Doch", "Nein"]}, {"q": "Wessen Buch ist das? — Das ist ___ (mein) Buch.", "a": "mein", "opts": ["meinen", "meine", "mein"]}]}, {"tips": "点餐: Ich mochte... / Was empfehlen Sie? / Zahlen bitte! schmecken(+D)合口味, gefallen(+D)使喜欢。Guten Appetit!祝好胃口。", "questions": [{"q": "___ (schmecken) es Ihnen?", "a": "Schmeckt", "opts": ["Schmecke", "Schmeckt", "Schmecken"]}, {"q": "Das Restaurant hier ___ (gefallen) mir sehr.", "a": "gefallt", "opts": ["gefallt", "gefallt", "gefallen"]}, {"q": "在餐厅说\"买单！\"", "a": "Zahlen, bitte!", "opts": ["Essen, bitte!", "Zahlen, bitte!", "Trinken, bitte!"]}]}];
+var GR = [{"unit": 1, "title": "人称代词 + 规则动词", "content": "人称代词: ich(我) / du(你) / er(他) / sie(她) / es(它) / wir(我们) / ihr(你们) / sie(他们) / Sie(您)<br><br>规则动词变位: 词干 + 人称词尾<br>ich → -e &nbsp; du → -st &nbsp; er/sie/es → -t<br>wir → -en &nbsp; ihr → -t &nbsp; sie/Sie → -en<br><br>词干以 -t/-d/-ffn/-chn/-gn 结尾时, -st/-t 前加 -e", "examples": [["Ich heie Wang Hong. Wer bist du?", "我叫王宏。你是谁？"], ["Woher kommst du? Ich komme aus China.", "你从哪里来？我来自中国。"], ["Was machst du? Ich lerne Deutsch.", "你在做什么？我在学德语。"]]}, {"unit": 2, "title": "问候·bis", "content": "常用问候语:<br>Guten Morgen! / Guten Tag! / Guten Abend! / Gute Nacht!<br>Auf Wiedersehen! (再见)<br><br>Bis + 时间 = 到见: Bis morgen! / Bis dann! / Bis gleich!", "examples": [["Guten Morgen! Wie geht es Ihnen?", "早上好！您好吗？"], ["Hallo! Wie heit du?", "你好！你叫什么名字？"], ["Auf Wiedersehen! Bis morgen!", "再见！明天见！"]]}, {"unit": 3, "title": "不规则动词现在时", "content": "强变化动词在 du/er/sie/es 时换音:<br>essen (吃): isst / lesen (阅读): liest / geben (给予): gibt<br>sehen (看): sieht / sprechen (说): spricht<br>fahren: fahrt / laufen: lauft<br>haben: hast/hat / sein: bist/ist", "examples": [["Herr Wang liest ein Buch. Was liest du?", "王先生在读书。你在读什么？"], ["Sprichst du Deutsch? Ja, ich spreche Deutsch.", "你说德语吗？是的，我说德语。"], ["Fahrst du mit dem Auto? Nein, ich fahre Rad.", "你开车吗？不，我骑自行车。"], ["Hast du Zeit? Ja, ich habe Zeit.", "你有时间吗？是的，我有时间。"]]}, {"unit": 4, "title": "第四格 Akkusativ", "content": "冠词第四格 (只有阳性变化):<br>der → den / ein → einen<br>阴性/中性不变<br><br>人称代词第四格:<br>ich→mich / du→dich / er→ihn<br>wir→uns / ihr→euch", "examples": [["Ich habe einen Tisch und einen Stuhl.", "我有一张桌子和一把椅子。"], ["Hast du einen Kaffee? Ja, ich trinke einen Kaffee.", "你要一杯咖啡吗？是的。"], ["Der Lehrer fragt den Schuler.", "老师问学生。"], ["Besuchst du mich? Ja, ich besuche dich.", "你来看我吗？是的。"]]}, {"unit": 5, "title": "时间表达与数字", "content": "基数词: 0-12单独 / 13-19=个位+zehn / 20-90=个位+zig / 21-99=个位+und+十位<br>100=hundert / 1000=tausend<br><br>钟点: um + 时间 / 时段: am Morgen/Vormittag/Nachmittag/Abend", "examples": [["Um wie viel Uhr stehst du auf? Ich stehe um halb sieben auf.", "你几点起床？我六点半起床。"], ["Am Vormittag habe ich Unterricht. Von acht bis zwolf.", "上午我有课。从八点到十二点。"], ["Hast du heute Zeit? Nein, ich habe keine Zeit.", "你今天有时间吗？不，没有。"]]}, {"unit": 6, "title": "情态动词 mogen / mochte", "content": "变位: ich mag/mochte / du magst/mochtest / er mag/mochte<br>wir mogen/mochten / ihr mogt/mochtet<br><br>A: 助动词 mochte+Inf: Ich mochte Deutsch lernen.<br>B: 独立动词: mochte=想要 / mogen=喜欢", "examples": [["Ich mochte Deutsch lernen. Was mochtest du lernen?", "我想学德语。你想学什么？"], ["Mochtest du einen Kaffee? Ja, gerne!", "你想来杯咖啡吗？好的！"], ["Magst du Musik? Ja, ich mag Musik.", "你喜欢音乐吗？是的。"]]}, {"unit": 7, "title": "第三格 Dativ", "content": "冠词第三格: 阳dem/einem / 阴der/einer / 中dem/einem<br>复数: den + 名词加-n<br><br>人称代词第三格: ich→mir / du→dir / er→ihm<br>语序: 先三后四 / 先代后名 / 先四后三", "examples": [["Wie geht es dir? Mir geht es gut.", "你好吗？我很好。"], ["Der Lehrer erklart dem Schuler den Text.", "老师给学生解释课文。"], ["Hans hilft seinem Freund.", "汉斯帮助他的朋友。"], ["Kannst du mir helfen? Ja, ich helfe dir.", "你能帮我吗？是的。"]]}, {"unit": 8, "title": "命令式 Imperativ", "content": "du 命令式:<br>规则: 词干+(e)! / 变音动词不变音 / 换音动词换音<br>haben→Hab! / sein→Sei!<br><br>ihr 命令式: 直接用 ihr 变位形式", "examples": [["Sprich bitte langsam!", "请说慢点！"], ["Warte bitte auf mich!", "请等我！"], ["Fahr nicht zu schnell!", "别开太快！"], ["Sei bitte ruhig!", "请安静！"], ["Offnet die Bucher auf Seite 4!", "请翻开书第4页！"]]}, {"unit": 9, "title": "可分动词·否定·物主代词", "content": "可分动词: 前缀+根动词, 主句中前缀后置句末<br>例: aufstehen → Ich stehe um 6 Uhr auf.<br>vorhaben → Was hast du morgen vor?<br><br>零冠词: 职业/国籍作表语无冠词(Er ist Lehrer), 物质名词(trinkt Tee), 泛指复数(Das sind Bücher)<br><br>否定: kein + 名词(keine Zeit), nicht 否定其他(nicht heute)<br>ja/nein/doch: 不带否定词用ja/nein, 带否定词用doch/nein<br><br>物主代词N/A: mein/meinen, dein/deinen, sein/seinen, ihr/ihren, unser/unseren, euer/euren, Ihr/Ihren", "examples": [["Hast du heute Zeit? — Nein, ich habe keine Zeit.", "你今天有时间吗？不，我没有。"], ["Lernt Peter nicht fleiig? — Doch, er lernt fleiig.", "彼得学习不努力吗？不，他很努力。"], ["Wessen Buch ist das? — Das ist mein Buch.", "这是谁的书？这是我的书。"]]}, {"unit": 10, "title": "schmecken/gefallen·点餐", "content": "点餐常用语:<br>Ich mochte... (我想要……) / Was empfehlen Sie? (您推荐什么？)<br>Zahlen, bitte! (买单！) / Das macht zusammen... (一共……)<br><br>schmecken (+D): 合口味, 味道好<br>→ Schmeckt es Ihnen? / Mir schmeckt das gut.<br><br>gefallen (+D): 使喜欢<br>→ Das Restaurant gefallt mir sehr.<br><br>Guten Appetit! 祝好胃口！", "examples": [["Was mochtest du essen? — Ich mochte ein Schnitzel.", "你想吃什么？我想要一份肉排。"], ["Schmeckt es Ihnen? — Ja, es schmeckt sehr gut.", "您觉得好吃吗？是的，味道很好。"], ["Das macht zusammen 28,50 Euro.", "一共28.50欧元。"], ["Guten Appetit! — Danke, gleichfalls!", "祝好胃口！谢谢，也祝您！"]]}];
+
+// ====== State ======
+var ls = new Set(JSON.parse(localStorage.getItem('german-daily.ls')||'[]'));
+var sd = +localStorage.getItem('german-daily.sd')||0, ld = localStorage.getItem('german-daily.ld')||'';
+var di = +localStorage.getItem('german-daily.di')||0, theme = localStorage.getItem('german-daily.theme')||'dark';
+var settings = JSON.parse(localStorage.getItem('german-daily.de_settings')||'{"review":10,"new":5}');
+var syncOk = false;
+
+// Flashcard state
+var fcQueue = [], fcIdx = 0, fcFlipped = false;
+var fcStats = {known:0, unknown:0};
+var fcTodayReview = [], fcTodayNew = [], fcDate = '';
+
+// Grammar filter state
+var gfVal = 'all', grExpanded = false;
+
+// Keep this public edition's progress in this browser.
+function syncSave(){
+  localStorage.setItem('german-daily.ls', JSON.stringify([...ls]));
+  localStorage.setItem('german-daily.di', String(di));
+}
+function startProgress(){
+  const now = new Date();
+  const today = [now.getFullYear(), String(now.getMonth()+1).padStart(2,'0'), String(now.getDate()).padStart(2,'0')].join('-');
+  const days = new Set(JSON.parse(localStorage.getItem('german-daily.days') || '[]'));
+  days.add(today);
+  sd = days.size;
+  localStorage.setItem('german-daily.days', JSON.stringify([...days]));
+  localStorage.setItem('german-daily.sd', String(sd));
+  document.getElementById('syncStatus').textContent = '学习进度保存在此浏览器';
+  us();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)startProgress();});
+document.documentElement.setAttribute('data-theme',theme);
+
+// ====== Init ======
+document.addEventListener('DOMContentLoaded',function(){
+  var d=new Date();
+  var ds=d.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'});
+  document.getElementById('dateDisplayDesktop').textContent=ds;
+  document.getElementById('dateDisplayMobile').textContent=ds;
+  startProgress();
+  rd();rgf();us();setupEvents();initSettings();
+  document.getElementById('reviewCount').value=settings.review;
+  document.getElementById('newCount').value=settings.new;
+  updateThemeUI();
+
+  // Global search
+  var si=document.getElementById('globalSearch');
+  si.addEventListener('input',function(){
+    var q=this.value.toLowerCase().trim();
+    var r=document.getElementById('searchResults');
+    if(!q){r.classList.remove('show');return}
+    var m=WD.filter(function(w){return w.word.toLowerCase().includes(q)||w.meaning.includes(q)}).slice(0,8);
+    r.innerHTML=m.map(function(w){return'<div class="search-result-item" data-word="'+w.word+'"><span class="s-word">'+(w.article?w.article+' ':'')+w.word+'</span><span style="display:flex;align-items:center;gap:4px"><span class="s-meaning">'+w.meaning+'</span>'+sppBtn('speak(\''+(w.article?w.article+' ':'')+w.word+'\')')+'</span></div>'}).join('');
+    r.classList.add('show');
+  });
+  si.addEventListener('blur',function(){setTimeout(function(){document.getElementById('searchResults').classList.remove('show')},200)});
+});
+
+function setupEvents(){
+  document.getElementById('app').addEventListener('click',function(e){
+    var t=e.target.closest('[data-cmd]')||e.target.closest('[data-nav]')||e.target.closest('[data-word]')||e.target.closest('[data-adjust]')||e.target.closest('[data-theme-val]');
+    if(!t)return;
+    var c=t.dataset.cmd, n=t.dataset.nav, w=t.dataset.word;
+
+    if(t.dataset.themeVal){setTheme(t.dataset.themeVal);return}
+    if(t.dataset.adjust){adjustCount(t.dataset.adjust,t.dataset.dir);return}
+    if(w){showWordDetail(w);return}
+    if(n){goto(n);return}
+    if(c==='prev'){di--;rd()}else if(c==='next'){di++;rd()}
+    else if(c==='know'){fcRate(1)}else if(c==='dont'){fcRate(-1)}else if(c==='fcRestart'){initFC()}
+  });
+  document.getElementById('mo').addEventListener('click',function(e){if(e.target===this)this.classList.remove('active')});
+
+  // Grammar toggle
+  document.getElementById('grToggle').addEventListener('click',function(){
+    grExpanded=!grExpanded;
+    document.getElementById('gf').classList.toggle('expanded',grExpanded);
+    this.textContent=grExpanded?'收起 ▴':'展开全部 ▾';
+  });
+}
+
+// ====== Theme ======
+function setTheme(t){theme=t;document.documentElement.setAttribute('data-theme',theme);localStorage.setItem('german-daily.theme',theme);updateThemeUI();syncSave()}
+function updateThemeUI(){
+  document.querySelectorAll('.theme-opt').forEach(function(el){el.classList.toggle('active',el.dataset.themeVal===theme)});
+}
+
+// ====== Settings ======
+function initSettings(){
+  document.getElementById('reviewCount').addEventListener('change',function(){
+    var v=Math.max(1,Math.min(50,+this.value||10));this.value=v;settings.review=v;saveSettings();
+  });
+  document.getElementById('newCount').addEventListener('change',function(){
+    var v=Math.max(1,Math.min(30,+this.value||5));this.value=v;settings.new=v;saveSettings();
+  });
+}
+function adjustCount(type,dir){
+  var el=type==='review'?document.getElementById('reviewCount'):document.getElementById('newCount');
+  var v=+el.value+ +dir;var max=type==='review'?50:30;
+  v=Math.max(1,Math.min(max,v));el.value=v;settings[type]=v;saveSettings();
+}
+function saveSettings(){localStorage.setItem('german-daily.de_settings',JSON.stringify(settings))}
+
+// ====== Navigation ======
+function goto(p){
+  document.querySelectorAll('.page').forEach(function(el){el.classList.remove('active')});
+  document.getElementById('page'+p.charAt(0).toUpperCase()+p.slice(1)).classList.add('active');
+  document.querySelectorAll('.sidebar-item').forEach(function(el){el.classList.remove('active')});
+  var si=document.querySelector('.sidebar-item[data-nav="'+p+'"]');if(si)si.classList.add('active');
+  document.querySelectorAll('.mobile-nav button').forEach(function(el){el.classList.remove('active')});
+  var mn=document.querySelector('.mobile-nav button[data-nav="'+p+'"]');if(mn)mn.classList.add('active');
+  if(p==='fc')initFC();if(p==='daily')rd();if(p==='grammarDay')showGrammarDay();if(p==='grammar')rgr()
+  document.getElementById('mainContent').scrollTop=0;
+}
+
+// ====== Speech ======
+// Warm up speech synth on first interaction
+var _speechReady=false;
+document.addEventListener('click',function _warm(){
+  if(_speechReady)return;
+  if(window.speechSynthesis){
+    var t=window.speechSynthesis.getVoices();
+    window.speechSynthesis.cancel();
+  }
+  _speechReady=true;
+},{once:true});
+
+function speak(text){
+  if(!text)return;
+  var cb=document.getElementById('volToggle');
+  if(cb&&!cb.checked)return;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.lang = 'de-DE';
+  u.rate = 0.9;
+  u.pitch = 1.1;
+  speechSynthesis.speak(u);
+}
+function speakWord(w){
+  if(!w)return;
+  var txt = w.article ? w.article+' '+w.word : w.word;
+  speak(txt);
+}
+function speakExample(w){
+  if(!w||!w.example)return;
+  speak(w.example);
+}
+function speakerSVG(){
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>';
+}
+function sppBtn(onClick){
+  return '<button class="speak-btn" onclick="event.stopPropagation();'+onClick+'">'+speakerSVG()+'</button>';
+}
+
+// ====== Stats ======
+function us(){
+  var pct=WD.length?Math.round(ls.size/WD.length*100):0;
+  document.getElementById('st1').textContent=WD.length;
+  document.getElementById('st2').textContent=sd;
+  document.getElementById('st3').textContent=ls.size;
+  document.getElementById('st4').textContent=WD.length-ls.size;
+  var stPct=document.getElementById('stPct');if(stPct)stPct.textContent=pct+'%';
+  var stDays=document.getElementById('stDays');if(stDays)stDays.textContent=sd;
+}
+us();
+
+// ====== Daily Word ======
+function rd(){
+  if(di>=WD.length)di=0;if(di<0)di=WD.length-1;var w=WD[di];
+  document.getElementById('dw').innerHTML = (w.article?w.article+' ':'')+w.word + sppBtn('speakWord(WD['+di+'])');
+  document.getElementById('dm').textContent=w.meaning;
+  document.getElementById('de').innerHTML=w.example?'"'+w.example+'"'+sppBtn('speakExample(WD['+di+'])') : '';
+  document.getElementById('dec').textContent=w.example&&w.cn?w.cn:'';
+  document.getElementById('dailyProgress').textContent='第 '+(di+1)+' / '+WD.length+' 个';
+  syncSave();
+}
+function randomWord(){di=Math.floor(Math.random()*WD.length);rd()}
+
+// ====== Word Detail ======
+function showWordDetail(word){
+  var w=WD.find(function(x){return x.word===word});if(!w)return;
+  var l=ls.has(w.word),ex=w.example?'<p><strong>德：</strong>"'+w.example+'"</p>':'',cn=w.example&&w.cn?'<p><strong>中：</strong>'+w.cn+'</p>':'';
+  document.getElementById('mw').innerHTML=(w.article?w.article+' ':'')+w.word+' '+sppBtn('speak(\''+(w.article?w.article+' ':'')+w.word+'\')');
+  document.getElementById('mm').textContent=w.meaning;
+  document.getElementById('md').innerHTML='<p><strong>单元：</strong>'+(w.unit||'?')+'</p>'+(w.plural?'<p><strong>复数：</strong>'+w.plural+'</p>':'')+ex+cn+'<p style="margin-top:12px;color:'+(l?'var(--accent)':'var(--text-tertiary)')+'">'+(l?'已掌握':'学习中')+' <span style="font-size:11px;color:var(--text-tertiary)">（点击下方标记）</span></p><button data-cmd="toggle" data-word="'+w.word+'" style="margin-top:10px;padding:9px 20px;border-radius:10px;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent);font-size:13px;cursor:pointer;width:100%;font-family:var(--font-body)">'+(l?'取消掌握':'标记已掌握')+'</button>';
+  document.getElementById('mo').classList.add('active');
+  // One-off handler
+  var btn=document.querySelector('[data-cmd="toggle"]');
+  if(btn)btn.addEventListener('click',function(){
+    var wd=this.dataset.word;
+    if(ls.has(wd))ls.delete(wd);else ls.add(wd);syncSave();us();showWordDetail(wd);
+  });
+}
+
+// ====== Flashcard ======
+function initFC(){
+  // Build queue: review (unlearned) first, then new
+  var unlearned=WD.filter(function(w){return!ls.has(w.word)});
+  // Shuffle
+  for(var i=unlearned.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=unlearned[i];unlearned[i]=unlearned[j];unlearned[j]=t}
+  var reviewCount=Math.min(settings.review,unlearned.length);
+  fcQueue=unlearned.slice(0,reviewCount);
+  fcIdx=0;fcFlipped=false;fcStats={known:0,unknown:0};
+  if(!fcQueue.length){showFCDone();return}
+  showFC();
+}
+function showFC(){
+  if(fcIdx>=fcQueue.length){showFCDone();return}
+  var w=fcQueue[fcIdx],pct=((fcIdx)/fcQueue.length*100).toFixed(0);
+  var gm={der:'m',die:'f',das:'n'},gl=w.article?gm[w.article]||'':'';
+  var gh='';
+  var ih='';
+  if(w.type==='noun'&&w.plural)ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">复数：</span>'+w.plural+'</div>';
+  if(w.word==='sein')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>ich bin, du bist, er ist</div>';
+  if(w.word==='haben')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>ich habe, du hast, er hat</div>';
+  if(w.word==='essen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du isst, er isst</div>';
+  if(w.word==='lesen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du liest, er liest</div>';
+  if(w.word==='geben')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du gibst, er gibt</div>';
+  if(w.word==='sehen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du siehst, er sieht</div>';
+  if(w.word==='fahren')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du fahrst, er fahrt</div>';
+  if(w.word==='laufen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du laufst, er lauft</div>';
+  if(w.word==='schlafen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du schlafst, er schlaft</div>';
+  if(w.word==='sprechen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du sprichst, er spricht</div>';
+  if(w.word==='treiben')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>treibt (规则)</div>';
+  if(w.word==='auf/stehen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>steht auf (可分)</div>';
+  if(w.word==='ab/fahren')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>fahrt ab (可分+a->a)</div>';
+	  if(w.word==='vor/schlagen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>schlagt vor (可分+a->a)</div>';
+	  if(w.word==='ein/laden')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>ladt ein (可分+a->a)</div>';
+	  if(w.word==='an/nehmen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>nimmt an (可分+e->i)</div>';
+	  if(w.word==='aus/sehen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>sieht aus (可分+e->ie)</div>';
+	  if(w.word==='empfehlen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>du empfiehlst, er empfiehlt</div>';
+	  if(w.word==='gefallen')ih='<div style="margin-top:8px;font-size:12px;color:var(--text-tertiary)"><span style="color:var(--text-secondary)">变位：</span>gefallst, gefallt (a->a)</div>';
+    var spBtnWord=sppBtn('speakWord(fcQueue['+fcIdx+'])');
+  var spBtnEx=sppBtn('speakExample(fcQueue['+fcIdx+'])');
+var h='<div class="fc-progress"><div class="fc-progress-bar"><div class="fc-progress-fill" style="width:'+pct+'%"></div></div></div><div class="fc-header"><span class="fc-counter">'+(fcIdx+1)+'/'+fcQueue.length+'</span><span class="fc-type">'+(ls.has(w.word)?'复习':'新词')+'</span></div><div class="flashcard" id="fc"><div class="fc-inner"><div class="fc-front">'+gh+'<div class="fc-wd">'+(w.article?w.article+' ':'')+w.word+'</div>'+spBtnWord+'<div class="fc-hint">点击翻转</div></div><div class="fc-back"><div class="fc-mn">'+w.meaning+'</div>'+spBtnWord+ih+'<div class="fc-ex" style="margin-top:'+(ih?'6px':'14px')+'">'+(w.example?'"'+w.example+'"':'')+'</div>'+spBtnEx+'<div class="fc-ex-cn">'+(w.cn?w.cn:'')+'</div></div></div></div><div class="fc-acts"><button class="btn-dont" data-cmd="dont">✗</button><button class="btn-know" data-cmd="know">✓</button></div>';
+  document.getElementById('fcContent').innerHTML=h;
+  document.getElementById('fc').addEventListener('click',function(){this.classList.toggle('flipped')});
+}function fcRate(r){
+  var w=fcQueue[fcIdx];
+  if(!w)return;
+  if(r>0){ls.add(w.word);fcStats.known++}else{fcStats.unknown++}
+  syncSave();us();
+  fcIdx++;fcFlipped=false;
+  if(fcIdx>=fcQueue.length){showFCDone()}else{showFC()}
+}
+function showFCDone(){
+  var total=fcStats.known+fcStats.unknown;
+  var pct=total?Math.round(fcStats.known/total*100):0;
+  var emoji=pct>=80?'🎉':pct>=50?'👍':'💪';
+  document.getElementById('fcContent').innerHTML='<div class="fc-done"><div class="big">'+emoji+'</div><div class="text">本轮完成！</div><div class="sub">知道 '+fcStats.known+' 个 · 不知道 '+fcStats.unknown+' 个 · 正确率 '+pct+'%</div><button data-cmd="fcRestart" style="padding:12px 28px;border-radius:20px;border:1px solid var(--accent);background:var(--accent-light);color:var(--accent);font-size:14px;cursor:pointer;font-family:var(--font-body)">再来一轮</button></div>';
+}
+
+// ====== Grammar ======
+function rgf(){
+  var o=['all','1','2','3','4','5','6','7','8','9','10'],lbl=['全部','U1 人称·规则动词','U2 问候·bis','U3 不规则动词','U4 第四格Akk.','U5 时间·数字','U6 情态mögen','U7 第三格Dat.','U8 命令式','U9 可分·否定·物主','U10 schmecken·点餐'];
+  var h='';
+  for(var i=0;i<o.length;i++)h+='<button class="filter-btn'+(o[i]===gfVal?' active':'')+'" data-cmd="grFilter" data-val="'+o[i]+'">'+lbl[i]+'</button>';
+  document.getElementById('gf').innerHTML=h;
+  document.querySelectorAll('[data-cmd="grFilter"]').forEach(function(b){
+    b.addEventListener('click',function(){gfVal=this.dataset.val;rgf();rgr()});
+  });
+  rgr();
+}
+function rgr(){
+  var lst=GR;if(gfVal!=='all')lst=lst.filter(function(g){return g.unit==gfVal});
+  var h='';
+  lst.forEach(function(g){var ex='';if(g.examples&&g.examples.length){ex='<div class="gr-ex"><strong>例</strong>';g.examples.forEach(function(e){ex+='<p>'+e[0]+'</p><p class="cn">'+e[1]+'</p>'});ex+='</div>'}h+='<div class="gr-card"><h3>U'+g.unit+' · '+g.title+'</h3><div class="gr-body"><p>'+g.content+'</p>'+ex+'</div></div>'});
+  if(!h)h='<div class="empty-small">无</div>';document.getElementById('gl').innerHTML=h;
+}
+
+function showGrammarDay(){
+  var di = (new Date().getDate() * 7 + new Date().getMonth() * 3) % 10;
+  var g = GR[di], t = GT[di];
+  var h = '<div class="daily-card"><div class="daily-label">每日语法 · U'+(di+1)+'</div><div style="font-family:var(--font-title);font-size:18px;font-weight:600;margin-bottom:12px">'+g.title+'</div><div class="gr-body" style="margin-bottom:14px">'+g.content+'</div>';
+  h += '<div style="background:rgba(201,100,66,0.04);border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid var(--border)"><strong style="font-size:12px;color:var(--accent)">记忆技巧</strong><p style="font-size:13px;color:var(--text-secondary);margin-top:6px;line-height:1.6">'+t.tips+'</p></div>';
+  h += '<div style="border-top:1px solid var(--border);padding-top:14px"><strong style="font-size:12px;color:var(--text-tertiary);letter-spacing:0.5px">小测验</strong></div>';
+  for(var i=0;i<t.questions.length;i++){
+    var q=t.questions[i];
+    h += '<div style="margin-top:14px"><div style="font-size:13px;color:var(--text);margin-bottom:8px">'+(i+1)+'. '+q.q+'</div><div style="display:flex;gap:6px;flex-wrap:wrap">';
+    for(var j=0;j<q.opts.length;j++)h += '<button class="gq-btn" data-qi="'+i+'" data-ans="'+(q.opts[j]===q.a?'1':'0')+'" style="padding:7px 16px;border-radius:14px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);font-size:12px;cursor:pointer;transition:all var(--transition);font-family:var(--font-body)">'+q.opts[j]+'</button>';
+    h += '</div><div style="font-size:11px;color:var(--text-tertiary);margin-top:5px" id="gqf'+i+'"></div></div>';
+  }
+  h += '</div>';
+  document.getElementById('grammarDayContent').innerHTML = h;
+  document.querySelectorAll('.gq-btn').forEach(function(b){
+    b.addEventListener('click',function(){
+      if(this.disabled)return;
+      var qi=this.dataset.qi;
+      document.querySelectorAll('.gq-btn[data-qi="'+qi+'"]').forEach(function(x){x.disabled=true});
+      if(this.dataset.ans==='1'){this.style.borderColor='rgba(80,180,120,0.5)';this.style.color='rgba(80,180,120,1)';this.style.background='rgba(80,180,120,0.08)';document.getElementById('gqf'+qi).textContent='✓'}
+      else{this.style.borderColor='rgba(200,80,80,0.3)';this.style.color='rgba(200,80,80,1)';this.style.background='rgba(200,80,80,0.08)';var ca=t.questions[qi].a;document.getElementById('gqf'+qi).textContent='✗ 正确答案：'+ca}
+    });
+  });
+}
+document.addEventListener('keydown',function(e){
+  if(e.key==='ArrowLeft'){di--;rd()}
+  if(e.key==='ArrowRight'){di++;rd()}
+  if(e.key===' '){
+    var fc=document.getElementById('fc');
+    if(fc){fc.classList.toggle('flipped');e.preventDefault()}
+  }
+});
+</script>
+</body>
+</html>
